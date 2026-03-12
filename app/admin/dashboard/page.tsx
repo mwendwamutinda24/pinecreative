@@ -3,8 +3,12 @@ import Header from "@/components/layout/Header";
 import { useState, useEffect } from "react";
 import Footer from "@/components/layout/Footer";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";   // ✅ added
 
 export default function AdminDashboard() {
+  const router = useRouter();                  // ✅ added
+  const [loading, setLoading] = useState(true); // ✅ added
+
   const [form, setForm] = useState({
     type: "image",
     title: "",
@@ -80,8 +84,27 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchItems();
-  }, []);
+    // ✅ Authentication check
+    const token = localStorage.getItem("token"); // or use cookies
+    if (!token) {
+      router.push("/login"); // redirect if not logged in
+    } else {
+      setLoading(false);
+      fetchItems();
+    }
+  }, [router]);
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <p>Checking authentication...</p>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
