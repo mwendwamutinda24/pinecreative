@@ -5,11 +5,11 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import Image from 'next/image';
 import { ArrowUpRight, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useState, useEffect } from "react";
 
 export default function Portfolios() {
   const [dbProjects, setDbProjects] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -19,27 +19,6 @@ export default function Portfolios() {
     };
     fetchProjects();
   }, []);
-
-  // static showcase projects
-  const projects = [
-    {
-      title: 'Corporate Film',
-      category: 'Corporate',
-      description: 'Professional corporate video showcasing company culture, values, and achievements.',
-      image: '/pinecreative/Film3.png', 
-      tags: ['Corporate', 'Film', 'Brand'],
-      link: '#'
-    },
-    {
-      title: 'Annual Conference Coverage',
-      category: 'Event Coverage',
-      description: 'Full coverage of a corporate annual conference with highlights and interviews.',
-      image: 'https://images.pexels.com/photos/1181396/pexels-photo-1181396.jpeg',
-      tags: ['Events', 'Coverage', 'Conference'],
-      link: '#'
-    },
-    // ... keep the rest of your static projects
-  ];
 
   const categories = [
     'All',
@@ -106,53 +85,6 @@ export default function Portfolios() {
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-              {/* Static projects */}
-              {projects.map((project, index) => (
-                <motion.div
-                  key={project.title}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -10 }}
-                  className="group bg-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="relative aspect-[16/9] overflow-hidden">
-                    <Image
-                      src={project.image}
-                      alt={project.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-orange-600 text-sm font-semibold">{project.category}</span>
-                      <ArrowUpRight className="w-5 h-5 text-gray-400 group-hover:text-black transition-all duration-200" />
-                    </div>
-                    <h3 className="text-xl font-bold text-black mb-3 group-hover:text-orange-600 transition-colors duration-200">
-                      {project.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 leading-relaxed">{project.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <span key={tag} className="px-3 py-1 bg-white text-gray-600 text-sm rounded-full border border-gray-200">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    {project.link && (
-                      <a href={project.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm text-orange-600 font-medium mt-3 hover:underline">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View Project
-                      </a>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-
-              {/* Dynamic projects from DB */}
               {dbProjects.map((project, index) => (
                 <motion.div
                   key={project._id}
@@ -161,23 +93,24 @@ export default function Portfolios() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.1 }}
                   whileHover={{ y: -10 }}
-                  className="group bg-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
+                  className="group bg-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                  onClick={() => setSelectedProject(project)}
                 >
                   <div className="relative aspect-[16/9] overflow-hidden">
-                    {project.type === "image" ? (
+                    {project.images?.length ? (
                       <Image
-                        src={project.url}
+                        src={project.images[0]}
                         alt={project.title}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
-                    ) : (
+                    ) : project.videos?.length ? (
                       <video
-                        src={project.url}
+                        src={project.videos[0]}
                         controls
                         className="object-cover w-full h-full"
                       />
-                    )}
+                    ) : null}
                   </div>
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-3">
@@ -195,19 +128,62 @@ export default function Portfolios() {
                         </span>
                       ))}
                     </div>
-                    {project.link && (
-                      <a href={project.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-sm text-orange-600 font-medium mt-3 hover:underline">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        View Project
-                      </a>
-                    )}
                   </div>
                 </motion.div>
               ))}
-
             </div>
           </div>
         </section>
+
+        {/* Detail Modal */}
+        {selectedProject && (
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full p-6 overflow-y-auto max-h-[90vh]">
+              <button
+                className="text-gray-600 hover:text-black mb-4"
+                onClick={() => setSelectedProject(null)}
+              >
+                Close ✕
+              </button>
+              <h2 className="text-2xl font-bold mb-4">{selectedProject.title}</h2>
+              <p className="text-gray-600 mb-4">{selectedProject.description}</p>
+
+              {/* Render all images */}
+              {selectedProject.images?.map((img: string, i: number) => (
+                <Image
+                  key={i}
+                  src={img}
+                  alt={`${selectedProject.title} image ${i+1}`}
+                  width={800}
+                  height={450}
+                  className="rounded-lg mb-4 object-cover"
+                />
+              ))}
+
+              {/* Render all videos */}
+              {selectedProject.videos?.map((vid: string, i: number) => (
+                <video
+                  key={i}
+                  src={vid}
+                  controls
+                  className="rounded-lg w-full mb-4"
+                />
+              ))}
+
+              {selectedProject.link && (
+                <a
+                  href={selectedProject.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-sm text-orange-600 font-medium mt-3 hover:underline"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  View Project
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </>
