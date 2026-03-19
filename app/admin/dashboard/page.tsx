@@ -3,74 +3,55 @@ import Header from "@/components/layout/Header";
 import { useState, useEffect } from "react";
 import Footer from "@/components/layout/Footer";
 import toast from "react-hot-toast";
-import { useRouter } from "next/navigation";   // ✅ added
 
 export default function AdminDashboard() {
-  const router = useRouter();                  // ✅ added
-  const [loading, setLoading] = useState(true); // ✅ added
-
   const [form, setForm] = useState({
-    type: "image",
     title: "",
     description: "",
     tags: "",
     link: "",
   });
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [items, setItems] = useState<any[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!file) {
-      toast.error("Please select a file to upload");
+    if (!files.length) {
+      toast.error("Please select at least one file to upload");
       return;
     }
 
     try {
-      // 1. Upload file to Cloudinary (or your upload API)
+      // Build FormData with files + metadata
       const data = new FormData();
-      data.append("file", file);
+      files.forEach((file) => data.append("files", file));
+      data.append("title", form.title);
+      data.append("description", form.description);
+      data.append("link", form.link);
+      form.tags.split(",").forEach((tag) => {
+        if (tag.trim()) data.append("tags", tag.trim());
+      });
 
+      // Upload & save via API
       const uploadRes = await fetch("/api/portfolio/upload", {
         method: "POST",
         body: data,
       });
       const uploadData = await uploadRes.json();
 
-      if (!uploadData.secure_url) {
-        toast.error("Upload failed");
+      if (!uploadRes.ok) {
+        toast.error(uploadData.error || "Upload failed");
         return;
       }
 
-      // 2. Save metadata + Cloudinary URL in DB
-      await fetch("/api/portfolio/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: form.type,
-          title: form.title,
-          description: form.description,
-          tags: form.tags.split(",").map((t) => t.trim()),
-          link: form.link,
-          url: uploadData.secure_url,
-        }),
-      });
-
       // Reset form
-      setForm({
-        type: "image",
-        title: "",
-        description: "",
-        tags: "",
-        link: "",
-      });
-      setFile(null);
+      setForm({ title: "", description: "", tags: "", link: "" });
+      setFiles([]);
 
       // Refresh items
       fetchItems();
 
-      // ✅ Show success toast
       toast.success("Portfolio item added successfully!");
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
@@ -84,27 +65,8 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    // ✅ Authentication check
-    const token = localStorage.getItem("token"); // or use cookies
-    if (!token) {
-      router.push("/login"); // redirect if not logged in
-    } else {
-      setLoading(false);
-      fetchItems();
-    }
-  }, [router]);
-
-  if (loading) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen flex items-center justify-center">
-          <p>Checking authentication...</p>
-        </div>
-        <Footer />
-      </>
-    );
-  }
+    fetchItems();
+  }, []);
 
   return (
     <>
@@ -117,22 +79,13 @@ export default function AdminDashboard() {
           onSubmit={handleSubmit}
           className="bg-white shadow-md rounded-lg p-6 mb-8 space-y-4"
         >
-          {/* form inputs unchanged */}
-          <select
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="w-full border rounded-lg p-2"
-          >
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
-
           <input
             type="text"
             placeholder="Title"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
             className="w-full border rounded-lg p-2"
+            required
           />
 
           <textarea
@@ -161,7 +114,8 @@ export default function AdminDashboard() {
           <input
             type="file"
             accept="image/*,video/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
             className="w-full border rounded-lg p-2"
           />
 
@@ -189,19 +143,27 @@ export default function AdminDashboard() {
                   </span>
                 ))}
               </div>
-              {item.type === "image" ? (
+
+              {/* Render multiple images */}
+              {item.images?.map((img: string, i: number) => (
                 <img
-                  src={item.url}
+                  key={i}
+                  src={img}
                   alt={item.title}
-                  className="rounded-lg w-full h-48 object-cover"
+                  className="rounded-lg w-full h-48 object-cover mb-2"
                 />
-              ) : (
+              ))}
+
+              {/* Render multiple videos */}
+              {item.videos?.map((vid: string, i: number) => (
                 <video
-                  src={item.url}
+                  key={i}
+                  src={vid}
                   controls
-                  className="rounded-lg w-full h-48 object-cover"
+                  className="rounded-lg w-full h-48 object-cover mb-2"
                 />
-              )}
+              ))}
+
               {item.link && (
                 <a
                   href={item.link}
