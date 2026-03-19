@@ -1,13 +1,16 @@
-// models/PortfolioItem.js
 import mongoose from "mongoose";
 
 const PortfolioItemSchema = new mongoose.Schema({
-  type: { type: String, enum: ["image", "video"], required: true },
-  url: { type: String, required: true },
   title: { type: String, required: true },
-  description: { type: String }, 
-  tags: [{ type: String }],     
-  link: { type: String },     
+  description: { type: String },
+  category: { type: String }, // e.g. Corporate, Event Coverage, etc.
+  tags: [{ type: String }],
+
+  // Arrays for multiple media
+  images: [{ type: String }], // Cloudinary URLs for images
+  videos: [{ type: String }], // Cloudinary URLs for videos
+
+  link: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 
